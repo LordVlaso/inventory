@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Инвентаризация</title>
+<style>
+  :root {
+    --bg: #0b0d14; --panel: rgba(255,255,255,.045); --panel-2: rgba(255,255,255,.07);
+    --stroke: rgba(255,255,255,.09); --stroke-2: rgba(255,255,255,.16);
+    --text: #f1f2f7; --muted: #8d93a8; --accent: #8b7bff; --accent-2: #4fd1ff; --danger: #ff6b81;
+    --office: #ff9f43; --os: #4fa3ff; --av: #2ee59d; --browsers: #c77dff;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0; min-height: 100vh; color: var(--text);
+    font: 15px/1.5 "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    background:
+      radial-gradient(900px 500px at 8% -10%, rgba(139,123,255,.28), transparent 60%),
+      radial-gradient(800px 500px at 100% 0%, rgba(79,209,255,.18), transparent 60%),
+      radial-gradient(700px 600px at 50% 120%, rgba(46,229,157,.10), transparent 60%),
+      var(--bg);
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 36px 20px 64px; }
+
+  /* header */
+  .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 22px; }
+  .badge { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--accent-2); background: rgba(79,209,255,.08); border: 1px solid rgba(79,209,255,.25); padding: 5px 11px; border-radius: 999px; margin-bottom: 12px; }
+  .badge i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-2); box-shadow: 0 0 10px var(--accent-2); animation: pulse 2s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  h1 { font-family: "Unbounded", "Roboto", system-ui, sans-serif; font-weight: 700; font-size: clamp(26px, 4vw, 40px); line-height: 1.1; margin: 0; letter-spacing: -.01em; }
+  h1 span { background: linear-gradient(90deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { color: var(--muted); margin: 10px 0 0; font-size: 15px; max-width: 560px; }
+
+  /* stat tiles */
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 12px; margin-bottom: 22px; }
+  @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat { background: var(--panel); border: 1px solid var(--stroke); border-radius: 18px; padding: 16px 18px; position: relative; overflow: hidden; }
+  .stat::after { content: ""; position: absolute; inset: auto -30px -40px auto; width: 110px; height: 110px; border-radius: 50%; background: var(--c, var(--accent)); opacity: .14; filter: blur(8px); }
+  .stat .k { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .stat .v { font-family: "Unbounded", "Roboto", system-ui, sans-serif; font-size: 28px; font-weight: 700; margin-top: 6px; }
+  .stat .d { font-size: 12px; color: var(--muted); margin-top: 2px; min-height: 18px; }
+
+  .card { background: var(--panel); border: 1px solid var(--stroke); border-radius: 24px; padding: 24px; margin-bottom: 22px;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 20px 60px -30px rgba(0,0,0,.6); }
+  .card-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .card h2 { font-family: "Unbounded", "Roboto", system-ui, sans-serif; font-size: 17px; font-weight: 500; margin: 0; }
+  .card h2 .pill { font-family: "Manrope", sans-serif; font-size: 12px; font-weight: 700; color: #0b0d14; background: var(--accent-2); border-radius: 999px; padding: 2px 9px; margin-left: 8px; vertical-align: 3px; }
+
+  .grid { display: grid; grid-template-columns: 150px 1fr 220px; gap: 14px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  label.f { display: flex; flex-direction: column; gap: 7px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  input[type=text], input[type=number], input[type=search] {
+    font: 500 15px "Manrope", sans-serif; color: var(--text); background: rgba(0,0,0,.28);
+    border: 1px solid var(--stroke); border-radius: 14px; padding: 12px 14px; width: 100%; transition: border-color .15s, box-shadow .15s;
+  }
+  input::placeholder { color: #5d6377; }
+  input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(139,123,255,.18); }
+
+  /* software groups */
+  .groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 20px; }
+  @media (max-width: 1020px) { .groups { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 580px) { .groups { grid-template-columns: 1fr; } }
+  .group { --g: var(--accent); border: 1px solid var(--stroke); border-radius: 20px; padding: 16px; position: relative; overflow: hidden;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--g) 9%, transparent), rgba(255,255,255,.02) 55%); }
+  .group::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--g); opacity: .85; }
+  .gh { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .gi { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: var(--g);
+    background: color-mix(in srgb, var(--g) 16%, transparent); border: 1px solid color-mix(in srgb, var(--g) 35%, transparent); }
+  .gi svg { width: 18px; height: 18px; }
+  .gh h3 { margin: 0; font-size: 15px; font-weight: 700; flex: 1; }
+  .gh .cnt { font-size: 12px; font-weight: 700; color: #0b0d14; background: var(--g); border-radius: 999px; min-width: 22px; height: 22px; display: grid; place-items: center; padding: 0 7px; transform: scale(0); transition: transform .2s cubic-bezier(.3,1.6,.5,1); }
+  .gh .cnt.show { transform: scale(1); }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px 7px 9px; border-radius: 999px; cursor: pointer; user-select: none;
+    border: 1px solid var(--stroke-2); background: rgba(255,255,255,.03); font-size: 14px; font-weight: 600; color: #c9cddb;
+    transition: background .15s, border-color .15s, color .15s, transform .1s; }
+  .chip:hover { border-color: color-mix(in srgb, var(--g) 60%, transparent); color: var(--text); }
+  .chip:active { transform: scale(.97); }
+  .chip input[type=checkbox] { position: absolute; opacity: 0; pointer-events: none; }
+  .chip .dot { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid #5d6377; display: grid; place-items: center; transition: all .15s; flex: none; }
+  .chip .dot::after { content: ""; width: 8px; height: 4px; border-left: 2px solid #0b0d14; border-bottom: 2px solid #0b0d14; transform: rotate(-45deg) translate(1px,-1px) scale(0); transition: transform .15s; }
+  .chip.on { background: color-mix(in srgb, var(--g) 22%, transparent); border-color: var(--g); color: #fff; }
+  .chip.on .dot { background: var(--g); border-color: var(--g); box-shadow: 0 0 12px color-mix(in srgb, var(--g) 70%, transparent); }
+  .chip.on .dot::after { transform: rotate(-45deg) translate(1px,-1px) scale(1); }
+  .chip:has(input:focus-visible) { box-shadow: 0 0 0 3px color-mix(in srgb, var(--g) 40%, transparent); }
+  .chip .qty { width: 54px; padding: 3px 6px; border-radius: 9px; font-size: 13px; text-align: center; background: rgba(0,0,0,.35); }
+  .chip .qty:disabled { opacity: .3; }
+  .group .other { margin-top: 10px; padding: 8px 12px; font-size: 13px; border-radius: 12px; background: rgba(0,0,0,.2); }
+  .note { margin-top: 16px; }
+
+  .actions { display: flex; gap: 10px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+  button { font: 600 14px "Manrope", sans-serif; border-radius: 14px; padding: 11px 18px; border: 1px solid var(--stroke-2); background: rgba(255,255,255,.04);
+    color: var(--text); cursor: pointer; transition: background .15s, border-color .15s, transform .1s, box-shadow .15s; }
+  button:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.25); }
+  button:active { transform: translateY(1px); }
+  button.primary { border: 0; color: #fff; padding: 12px 24px; background: linear-gradient(135deg, var(--accent), #5b6cff 55%, var(--accent-2));
+    box-shadow: 0 10px 30px -10px rgba(139,123,255,.8); }
+  button.primary:hover { box-shadow: 0 14px 34px -10px rgba(139,123,255,1); filter: brightness(1.08); }
+  button.small { padding: 6px 12px; font-size: 13px; border-radius: 10px; }
+  button.danger { color: var(--danger); }
+  button.danger:hover { background: rgba(255,107,129,.1); border-color: rgba(255,107,129,.4); }
+  button:disabled { opacity: .5; cursor: default; }
+  .msg { font-size: 14px; color: var(--av); font-weight: 600; }
+  .msg.err { color: var(--danger); }
+
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .search { position: relative; flex: 1; min-width: 220px; max-width: 340px; }
+  .search svg { position: absolute; left: 13px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: var(--muted); }
+  .search input { padding-left: 38px; }
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0 6px; font-size: 14px; }
+  th { text-align: left; padding: 4px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; white-space: nowrap; }
+  td { padding: 12px; vertical-align: middle; background: rgba(255,255,255,.035); border-top: 1px solid var(--stroke); border-bottom: 1px solid var(--stroke); }
+  td:first-child { border-left: 1px solid var(--stroke); border-radius: 14px 0 0 14px; }
+  td:last-child { border-right: 1px solid var(--stroke); border-radius: 0 14px 14px 0; }
+  tbody tr:hover td { background: rgba(255,255,255,.06); }
+  .room { font-family: "Unbounded", "Roboto", system-ui, sans-serif; font-weight: 500; font-size: 13px; background: rgba(139,123,255,.16); color: #cfc8ff; border-radius: 9px; padding: 4px 9px; white-space: nowrap; }
+  .nm { font-weight: 700; min-width: 180px; }
+  .invn { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; color: #b9bfd3; }
+  .tag { --g: var(--accent); display: inline-block; border-radius: 8px; padding: 2px 8px; margin: 2px 4px 2px 0; font-size: 12.5px; font-weight: 600; white-space: nowrap;
+    color: color-mix(in srgb, var(--g) 70%, white); background: color-mix(in srgb, var(--g) 15%, transparent); border: 1px solid color-mix(in srgb, var(--g) 30%, transparent); }
+  .no { color: #4b5064; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0 !important; border-radius: 14px; }
+  .empty b { display: block; font-size: 30px; margin-bottom: 6px; }
+  .row-actions { white-space: nowrap; text-align: right; }
+  tr.editing td { background: rgba(139,123,255,.14) !important; border-color: rgba(139,123,255,.45); }
+  .modal-bg { position: fixed; inset: 0; background: rgba(5,6,10,.7); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+  .modal-bg.show { display: flex; }
+  .modal { background: #161925; border-radius: 22px; padding: 24px; max-width: 400px; width: 100%; border: 1px solid var(--stroke-2); }
+  .modal p { margin: 0 0 18px; font-weight: 600; }
+  .modal .actions { justify-content: flex-end; margin-top: 0; }
+  .toast-in { animation: tin .25s ease; }
+  @keyframes tin { from { opacity: 0; transform: translateY(4px); } }
+
+  /* ===== app additions ===== */
+  html, body { -webkit-tap-highlight-color: transparent; }
+  button.danger-fill { background: var(--danger) !important; box-shadow: 0 10px 30px -10px rgba(255,107,129,.8) !important; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 30px); opacity: 0; pointer-events: none; z-index: 30;
+    background: #1d2130; border: 1px solid var(--stroke-2); color: var(--text); padding: 12px 18px; border-radius: 14px; font-weight: 600; font-size: 14px;
+    box-shadow: 0 16px 40px -12px rgba(0,0,0,.8); transition: all .25s; max-width: calc(100% - 32px); text-align: center; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.err { border-color: rgba(255,107,129,.5); color: #ffc2cc; }
+  .sheet-bg { position: fixed; inset: 0; background: rgba(5,6,10,.6); display: flex; align-items: flex-end; justify-content: center; z-index: 20;
+    opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .sheet-bg.show { opacity: 1; pointer-events: auto; }
+  .sheet { width: 100%; max-width: 560px; max-height: 86vh; overflow-y: auto; background: #151826; border: 1px solid var(--stroke-2); border-bottom: 0;
+    border-radius: 24px 24px 0 0; padding: 10px 18px 26px; transform: translateY(40px); transition: transform .25s cubic-bezier(.2,.9,.3,1); }
+  .sheet-bg.show .sheet { transform: none; }
+  .grab { width: 42px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.18); margin: 2px auto 12px; }
+  .sheet-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .sheet-h h3 { margin: 0; font-family: "Unbounded", "Roboto", sans-serif; font-weight: 500; font-size: 17px; }
+  .sheet-item { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 13px 14px; margin-bottom: 8px; border-radius: 16px; }
+  .sheet-item .si-i { width: 40px; height: 40px; flex: none; display: grid; place-items: center; font-size: 19px; border-radius: 12px; background: rgba(139,123,255,.14); }
+  .sheet-item b { display: block; font-size: 15px; }
+  .sheet-item small { display: block; color: var(--muted); font-weight: 500; font-size: 12.5px; margin-top: 1px; }
+  .dict-g { --g: var(--accent); border: 1px solid var(--stroke); border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; background: color-mix(in srgb, var(--g) 6%, transparent); }
+  .dict-g .gh { margin-bottom: 8px; }
+  .dict-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--stroke); font-weight: 600; font-size: 14px; }
+  .dict-add { display: flex; gap: 8px; margin-top: 10px; }
+  .dict-add input { padding: 9px 12px; font-size: 14px; border-radius: 12px; }
+  .modal-bg { z-index: 40; }
+
+  @media (max-width: 760px) {
+    .wrap { padding: 22px 14px 70px; }
+    .hero { margin-bottom: 16px; }
+    .sub { font-size: 14px; }
+    .stats { gap: 10px; margin-bottom: 16px; }
+    .stat { padding: 13px 14px; border-radius: 16px; }
+    .stat .v { font-size: 24px; }
+    .card { padding: 18px 16px; border-radius: 22px; margin-bottom: 16px; }
+    .toolbar { width: 100%; }
+    .search { max-width: none; flex-basis: 100%; }
+    .toolbar button { flex: 1; }
+    .actions button.primary { flex: 1; }
+    table, tbody, tr, td { display: block; width: 100%; }
+    thead { display: none; }
+    table { border-spacing: 0; }
+    tbody tr { border: 1px solid var(--stroke); border-radius: 16px; background: rgba(255,255,255,.035); padding: 12px 14px; margin-bottom: 10px; }
+    tbody tr.empty-row { border: 0; background: none; padding: 0; }
+    td { background: none !important; border: 0 !important; border-radius: 0 !important; padding: 3px 0; }
+    td.none { display: none; }
+    td.c-room { float: left; width: auto; margin: 0 10px 0 0; padding-top: 1px; }
+    td.nm { min-width: 0; font-size: 16px; padding-bottom: 6px; }
+    td[data-l]::before { content: attr(data-l); display: block; font-family: "Manrope", "Roboto", sans-serif; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; font-weight: 700; margin: 4px 0 2px; }
+    td.invn { clear: both; }
+    .row-actions { text-align: left; padding-top: 10px; display: flex; gap: 8px; }
+    .row-actions button { flex: 1; }
+    tbody tr.editing { border-color: rgba(139,123,255,.6); background: rgba(139,123,255,.14); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div>
+      <div class="badge"><i></i>Инвентаризация</div>
+      <h1>Учёт техники <span>и&nbsp;софта</span></h1>
+      <p class="sub">Вбей кабинет и инвентарник, натыкай что стоит — и жми «Сохранить».</p>
+    </div>
+  </header>
+  <div class="stats" id="stats"></div>
+
+  <form class="card" id="form" autocomplete="off">
+    <div class="card-h"><h2 id="formTitle">Новая запись</h2></div>
+    <div class="grid">
+      <label class="f">Кабинет №
+        <input type="text" id="room" required placeholder="например, 214" inputmode="text">
+      </label>
+      <label class="f">Наименование техники
+        <input type="text" id="name" required placeholder="например, ПК Lenovo M70">
+      </label>
+      <label class="f">Инвентарный номер
+        <input type="text" id="inv" required placeholder="например, 00012345">
+      </label>
+    </div>
+
+    <div class="groups" id="groups"></div>
+
+    <label class="f note">Примечание (необязательно)
+      <input type="text" id="note" placeholder="ответственный, состояние и т.п.">
+    </label>
+
+    <div class="actions">
+      <button type="submit" class="primary" id="saveBtn">Сохранить</button>
+      <button type="button" id="cancelBtn" style="display:none">Отменить</button>
+      <button type="button" id="resetBtn">Очистить</button>
+      <span class="msg" id="msg"></span>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="card-h">
+      <h2>Список техники<span class="pill" id="countPill">0</span></h2>
+      <div class="toolbar">
+        <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="search" placeholder="Кабинет, название, инв. №, ПО"></label>
+        <button type="button" id="printBtn">🖨 Печать</button>
+        <button type="button" id="moreBtn" aria-label="Ещё">⋯ Ещё</button>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="sheet-bg" id="sheet">
+  <div class="sheet" role="dialog">
+    <div class="grab"></div>
+    <div class="sheet-h"><h3 id="sheetTitle"></h3><button type="button" class="small" id="sheetClose">Закрыть</button></div>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <p id="modalText"></p>
+    <div class="actions">
+      <button type="button" id="modalNo">Отмена</button>
+      <button type="button" class="primary" id="modalYes">ОК</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  const HAS = !!(window.Android && window.Android.saveData);
+  const LS_KEY = "inventory-app-v1";
+
+  // ===== Стандартный справочник ПО =====
+  const ICONS = {
+    office: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>',
+    os: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>',
+    av: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>',
+    browsers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>'
+  };
+  const DEFAULT_GROUPS = [
+    { key: "office", title: "Офис", color: "var(--office)", options: [
+      { id: "msoffice", label: "Microsoft Office", short: "MS Office" },
+      { id: "libre",    label: "LibreOffice" },
+      { id: "myoffice", label: "МойОфис" },
+      { id: "r7",       label: "Р7-Офис" } ]},
+    { key: "os", title: "ОС", color: "var(--os)", options: [
+      { id: "win7",  label: "Windows 7" },
+      { id: "win10", label: "Windows 10" },
+      { id: "win11", label: "Windows 11" },
+      { id: "astra", label: "Astra Linux", linux: true },
+      { id: "red",   label: "РЕД ОС", linux: true },
+      { id: "alt",   label: "Альт Linux", linux: true } ]},
+    { key: "av", title: "Антивирус (кол-во)", printTitle: "Антивирус<br><span style=\"font-weight:normal\">(шт.)</span>", color: "var(--av)", qty: true, options: [
+      { id: "kaspersky", label: "Kaspersky" },
+      { id: "drweb",     label: "Dr.Web" } ]},
+    { key: "browsers", title: "Браузеры", color: "var(--browsers)", options: [
+      { id: "yandex",  label: "Яндекс Браузер", short: "Яндекс" },
+      { id: "chgost",  label: "Chromium-Gost" },
+      { id: "chrome",  label: "Google Chrome", short: "Chrome" },
+      { id: "firefox", label: "Firefox" } ]}
+  ];
+  const clone = (x) => JSON.parse(JSON.stringify(x));
+  let GROUPS = clone(DEFAULT_GROUPS);
+  let records = [];
+  let editingId = null;
+
+  const $ = (id) => document.getElementById(id);
+  const form = $("form");
+  function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+  function setMsg(t, err) { $("msg").textContent = t || ""; $("msg").className = "msg toast-in" + (err ? " err" : ""); }
+  let toastTimer = null;
+  function toast(t, err) {
+    const el = $("toast"); el.textContent = t; el.className = "toast show" + (err ? " err" : "");
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.className = "toast", 2600);
+  }
+
+  // ===== хранение =====
+  function applyGroups(saved) {
+    GROUPS = DEFAULT_GROUPS.map(d => {
+      const s = Array.isArray(saved) ? saved.find(x => x && x.key === d.key) : null;
+      return { ...clone(d), options: s && Array.isArray(s.options) ? s.options : clone(d.options) };
+    });
+  }
+  function snapshot() {
+    return JSON.stringify({ app: "inventory", version: 1, saved: new Date().toISOString(), records, groups: GROUPS.map(g => ({ key: g.key, options: g.options })) });
+  }
+  function load() {
+    let t = null;
+    try { t = HAS ? window.Android.loadData() : localStorage.getItem(LS_KEY); } catch (e) {}
+    if (!t) return;
+    try { const d = JSON.parse(t); records = Array.isArray(d.records) ? d.records : []; applyGroups(d.groups); } catch (e) {}
+  }
+  function persist() {
+    let ok = false; const t = snapshot();
+    try { if (HAS) ok = !!window.Android.saveData(t); else { localStorage.setItem(LS_KEY, t); ok = true; } } catch (e) {}
+    render();
+    if (!ok) toast("Не удалось сохранить данные", true);
+    return ok;
+  }
+
+  // ===== группы в форме =====
+  function buildGroups() {
+    $("groups").innerHTML = GROUPS.map(g => `
+      <div class="group" style="--g:${g.color}">
+        <div class="gh"><span class="gi">${ICONS[g.key]}</span><h3>${esc(g.title)}</h3><span class="cnt" data-cnt="${g.key}">0</span></div>
+        <div class="chips">
+        ${g.options.map(o => `
+          <label class="chip">
+            <input type="checkbox" data-g="${g.key}" data-o="${esc(o.id)}">
+            <span class="dot"></span><span class="lbl">${esc(o.label)}</span>
+            ${g.qty ? `<input type="number" class="qty" data-qty="${g.key}:${esc(o.id)}" min="1" step="1" value="1" inputmode="numeric" disabled title="Количество, шт.">` : ""}
+          </label>`).join("")}
+        ${g.options.length ? "" : '<span class="no" style="font-size:13px">Список пуст — добавьте в «Справочнике ПО»</span>'}
+        </div>
+        <input type="text" class="other" data-other="${g.key}" placeholder="+ Другое…">
+      </div>`).join("");
+    syncChecks();
+  }
+  function syncChecks() {
+    document.querySelectorAll(".chip").forEach(l => {
+      const cb = l.querySelector("input[type=checkbox]");
+      l.classList.toggle("on", cb.checked);
+      const q = l.querySelector(".qty"); if (q) q.disabled = !cb.checked;
+    });
+    GROUPS.forEach(g => {
+      const n = document.querySelectorAll(`input[data-g="${g.key}"]:checked`).length;
+      const b = document.querySelector(`[data-cnt="${g.key}"]`); if (!b) return;
+      b.textContent = n; b.classList.toggle("show", n > 0);
+    });
+  }
+  $("groups").addEventListener("change", syncChecks);
+
+  const cbOf = (g, o) => document.querySelector(`input[data-g="${g}"][data-o="${CSS.escape(o)}"]`);
+  const qtyOf = (g, o) => document.querySelector(`input[data-qty="${CSS.escape(g + ":" + o)}"]`);
+
+  function readSel() {
+    const sel = {}, other = {};
+    GROUPS.forEach(g => {
+      sel[g.key] = g.qty ? {} : [];
+      g.options.forEach(o => {
+        const cb = cbOf(g.key, o.id); if (!cb || !cb.checked) return;
+        if (g.qty) sel[g.key][o.id] = Math.max(1, parseInt(qtyOf(g.key, o.id).value, 10) || 1);
+        else sel[g.key].push(o.id);
+      });
+      const oi = document.querySelector(`input[data-other="${g.key}"]`);
+      other[g.key] = oi ? oi.value.trim() : "";
+    });
+    return { sel, other };
+  }
+  function writeSel(sel, other) {
+    GROUPS.forEach(g => {
+      const s = (sel || {})[g.key];
+      g.options.forEach(o => {
+        const cb = cbOf(g.key, o.id); if (!cb) return;
+        if (g.qty) { const n = s && s[o.id]; cb.checked = !!n; qtyOf(g.key, o.id).value = n || 1; }
+        else cb.checked = !!(Array.isArray(s) && s.includes(o.id));
+      });
+      const oi = document.querySelector(`input[data-other="${g.key}"]`);
+      if (oi) oi.value = (other || {})[g.key] || "";
+    });
+    syncChecks();
+  }
+  function readForm() {
+    return { room: $("room").value.trim(), name: $("name").value.trim(), inv: $("inv").value.trim(), ...readSel(), note: $("note").value.trim() };
+  }
+  function fillForm(r) {
+    clearForm(false);
+    $("room").value = r.room; $("name").value = r.name; $("inv").value = r.inv; $("note").value = r.note || "";
+    writeSel(r.sel, r.other);
+  }
+  function clearForm(keepRoom) {
+    const room = $("room").value;
+    form.reset();
+    document.querySelectorAll(".qty").forEach(q => q.value = 1);
+    if (keepRoom) $("room").value = room;
+    syncChecks();
+  }
+  function setEditing(id) {
+    editingId = id;
+    $("formTitle").textContent = id ? "Редактирование" : "Новая запись";
+    $("saveBtn").textContent = id ? "Сохранить изменения" : "Сохранить";
+    $("cancelBtn").style.display = id ? "" : "none";
+    render();
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const r = readForm();
+    if (!r.room || !r.name || !r.inv) { setMsg("Заполните кабинет, наименование и инв. номер", true); return; }
+    const dup = records.find(x => x.inv.toLowerCase() === r.inv.toLowerCase() && x.id !== editingId);
+    if (dup) { setMsg(`Инв. № ${r.inv} уже есть (каб. ${dup.room}, ${dup.name})`, true); return; }
+    if (editingId) {
+      const i = records.findIndex(x => x.id === editingId);
+      if (i >= 0) records[i] = { ...records[i], ...r, updated: new Date().toISOString() };
+    } else {
+      records.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...r, created: new Date().toISOString() });
+    }
+    if (!persist()) return;
+    const wasEditing = !!editingId;
+    clearForm(!wasEditing);
+    setEditing(null);
+    setMsg(wasEditing ? "✓ Изменения сохранены" : "✓ Добавлено");
+    if (wasEditing) $("room").focus(); else $("name").focus();
+  });
+  $("resetBtn").addEventListener("click", () => { clearForm(false); setMsg(""); });
+  $("cancelBtn").addEventListener("click", () => { clearForm(false); setEditing(null); setMsg(""); });
+
+  // ===== отображение =====
+  function picked(r, g) {
+    const s = (r.sel || {})[g.key]; const out = [];
+    g.options.forEach(o => {
+      if (g.qty) { if (s && s[o.id]) out.push({ ...o, qty: s[o.id] }); }
+      else if (Array.isArray(s) && s.includes(o.id)) out.push(o);
+    });
+    return out;
+  }
+  function groupText(r, g) {
+    const parts = picked(r, g).map(o => o.label + (o.qty ? ` (${o.qty})` : ""));
+    const oth = (r.other || {})[g.key]; if (oth) parts.push(oth);
+    return parts.join(", ");
+  }
+  function filtered() {
+    const q = $("search").value.trim().toLowerCase();
+    const list = records.slice().sort((a, b) =>
+      a.room.localeCompare(b.room, "ru", { numeric: true }) || a.name.localeCompare(b.name, "ru"));
+    if (!q) return list;
+    return list.filter(r => [r.room, r.name, r.inv, r.note, ...GROUPS.map(g => groupText(r, g))]
+      .some(v => String(v || "").toLowerCase().includes(q)));
+  }
+  function cellTags(r, g) {
+    const tags = picked(r, g).map(o => `<span class="tag" style="--g:${g.color}">${esc(o.label)}${o.qty ? " × " + o.qty : ""}</span>`);
+    const oth = (r.other || {})[g.key]; if (oth) tags.push(`<span class="tag" style="--g:${g.color}">${esc(oth)}</span>`);
+    return tags.join("");
+  }
+  const shortTitle = (g) => g.title.replace(/ \(.*\)/, "");
+
+  function render() {
+    $("thead").innerHTML = `<th>Каб.</th><th>Наименование</th><th>Инв. №</th>${GROUPS.map(g => `<th>${esc(shortTitle(g))}</th>`).join("")}<th>Примечание</th><th></th>`;
+    const list = filtered();
+    const cols = 5 + GROUPS.length;
+    $("tbody").innerHTML = !list.length
+      ? `<tr class="empty-row"><td colspan="${cols}" class="empty">${records.length ? "<b>🔍</b>Ничего не нашлось" : "<b>🗂</b>Пока пусто — добавь первую технику"}</td></tr>`
+      : list.map(r => `
+        <tr class="${r.id === editingId ? "editing" : ""}">
+          <td class="c-room"><span class="room">${esc(r.room)}</span></td>
+          <td class="nm">${esc(r.name)}</td>
+          <td class="invn" data-l="Инв. №">${esc(r.inv)}</td>
+          ${GROUPS.map(g => { const t = cellTags(r, g); return `<td data-l="${esc(shortTitle(g))}" class="${t ? "" : "none"}">${t || '<span class="no">—</span>'}</td>`; }).join("")}
+          <td data-l="Примечание" class="${r.note ? "" : "none"}">${esc(r.note)}</td>
+          <td class="row-actions">
+            <button type="button" class="small" data-edit="${r.id}">Изменить</button>
+            <button type="button" class="small danger" data-del="${r.id}">Удалить</button>
+          </td>
+        </tr>`).join("");
+
+    const rooms = new Set(records.map(r => r.room)).size;
+    const avG = GROUPS.find(g => g.key === "av");
+    const avSum = (id) => records.reduce((s, r) => s + (((r.sel || {}).av || {})[id] || 0), 0);
+    const avParts = avG.options.map(o => ({ l: o.label, n: avSum(o.id) }));
+    const avTotal = avParts.reduce((s, x) => s + x.n, 0);
+    const osG = GROUPS.find(g => g.key === "os");
+    const isLinux = (o) => o.linux || /linux|astra|ред|альт|ubuntu|debian|rosa|роса/i.test(o.label);
+    const hasOs = (r, pred) => osG.options.some(o => pred(o) && ((r.sel || {}).os || []).includes(o.id));
+    const win = records.filter(r => hasOs(r, o => /windows/i.test(o.label))).length;
+    const lin = records.filter(r => hasOs(r, isLinux)).length;
+    $("countPill").textContent = records.length;
+    $("stats").innerHTML = [
+      { k: "Техника", v: records.length, d: "единиц на учёте", c: "var(--accent)" },
+      { k: "Кабинеты", v: rooms, d: rooms ? "охвачено" : "", c: "var(--accent-2)" },
+      { k: "Антивирус", v: avTotal, d: avParts.filter(x => x.n).map(x => `${esc(x.l)} ${x.n}`).join(" · ") || "лицензий", c: "var(--av)" },
+      { k: "ОС", v: win + lin, d: `Windows ${win} · Linux ${lin}`, c: "var(--os)" }
+    ].map(t => `<div class="stat" style="--c:${t.c}"><div class="k">${t.k}</div><div class="v">${t.v}</div><div class="d">${t.d}</div></div>`).join("");
+  }
+
+  $("tbody").addEventListener("click", async (e) => {
+    const ed = e.target.closest("[data-edit]"), del = e.target.closest("[data-del]");
+    if (ed) {
+      const r = records.find(x => x.id === ed.dataset.edit);
+      if (r) { fillForm(r); setEditing(r.id); setMsg(""); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    } else if (del) {
+      const r = records.find(x => x.id === del.dataset.del); if (!r) return;
+      if (!(await confirmBox(`Удалить «${r.name}» (инв. № ${r.inv}, каб. ${r.room})?`, "Удалить", true))) return;
+      records = records.filter(x => x.id !== r.id);
+      if (editingId === r.id) { clearForm(false); setEditing(null); }
+      persist(); toast("Запись удалена");
+    }
+  });
+  $("search").addEventListener("input", render);
+
+  // ===== модалка подтверждения =====
+  let modalResolve = null;
+  function confirmBox(text, yes, danger) {
+    $("modalText").textContent = text;
+    $("modalYes").textContent = yes || "ОК";
+    $("modalYes").classList.toggle("danger-fill", !!danger);
+    $("modal").classList.add("show");
+    return new Promise(res => { modalResolve = res; });
+  }
+  function closeModal(v) { $("modal").classList.remove("show"); if (modalResolve) { const r = modalResolve; modalResolve = null; r(v); } }
+  $("modalNo").addEventListener("click", () => closeModal(false));
+  $("modalYes").addEventListener("click", () => closeModal(true));
+
+  // ===== нижняя шторка =====
+  function openSheet(title, html, onClick) {
+    $("sheetTitle").textContent = title;
+    $("sheetBody").innerHTML = html;
+    $("sheetBody").onclick = onClick || null;
+    $("sheet").classList.add("show");
+  }
+  function closeSheet() { $("sheet").classList.remove("show"); }
+  $("sheetClose").addEventListener("click", closeSheet);
+  $("sheet").addEventListener("click", (e) => { if (e.target === $("sheet")) closeSheet(); });
+  const item = (act, icon, title, desc) =>
+    `<button type="button" class="sheet-item" data-act="${act}"><span class="si-i">${icon}</span><span><b>${title}</b><small>${desc}</small></span></button>`;
+
+  $("printBtn").addEventListener("click", () => {
+    const q = $("search").value.trim();
+    openSheet("Печать на А4", [
+      item("print", "🖨", "Ведомость", q ? `Записи по фильтру «${esc(q)}» (${filtered().length})` : `Все записи (${records.length}). Чтобы напечатать один кабинет — введите его номер в поиск`),
+      item("blank", "📄", "Пустой бланк", "Для заполнения от руки при обходе кабинетов")
+    ].join(""), (e) => {
+      const b = e.target.closest("[data-act]"); if (!b) return;
+      closeSheet(); doPrint(b.dataset.act === "blank");
+    });
+  });
+  $("moreBtn").addEventListener("click", () => {
+    openSheet("Ещё", [
+      item("csv-save", "⬇", "Сохранить в Excel (CSV)", "Файл откроется в Excel / Google Таблицах"),
+      item("csv-share", "📤", "Отправить таблицу", "В Telegram, на почту, в облако…"),
+      item("copy", "📋", "Копировать таблицу", "Чтобы вставить в Excel"),
+      item("dict", "⚙", "Справочник ПО", "Добавить или убрать программы в списках"),
+      item("backup", "💾", "Резервная копия", "Сохранить все данные в файл"),
+      item("restore", "♻", "Восстановить из копии", "Загрузить данные из файла резервной копии")
+    ].join(""), (e) => {
+      const b = e.target.closest("[data-act]"); if (!b) return;
+      const a = b.dataset.act;
+      if (a === "dict") { openDict(); return; }
+      closeSheet();
+      if (a === "csv-save") saveFile("inventarizaciya-" + today() + ".csv", "text/csv", csvText());
+      else if (a === "csv-share") shareFile("inventarizaciya-" + today() + ".csv", "text/csv", csvText());
+      else if (a === "copy") copyText(tsvText());
+      else if (a === "backup") saveFile("inventory-backup-" + today() + ".json", "application/json", snapshot());
+      else if (a === "restore") openFile();
+    });
+  });
+
+  // ===== справочник ПО =====
+  function dictHtml() {
+    return GROUPS.map(g => `
+      <div class="dict-g" style="--g:${g.color}">
+        <div class="gh"><span class="gi">${ICONS[g.key]}</span><h3>${esc(shortTitle(g))}</h3></div>
+        ${g.options.map(o => `<div class="dict-row"><span>${esc(o.label)}</span><button type="button" class="small danger" data-rm="${g.key}" data-id="${esc(o.id)}">✕</button></div>`).join("") || '<div class="no" style="font-size:13px;padding:4px 0">Пусто</div>'}
+        <div class="dict-add"><input type="text" data-new="${g.key}" placeholder="Новая программа"><button type="button" class="small" data-add="${g.key}">Добавить</button></div>
+      </div>`).join("") + `<button type="button" class="small" data-reset="1" style="margin-top:6px">Вернуть стандартные списки</button>`;
+  }
+  function rebuildKeepingForm() {
+    const cur = readSel();
+    buildGroups(); writeSel(cur.sel, cur.other);
+    render();
+  }
+  function openDict() {
+    openSheet("Справочник ПО", dictHtml(), async (e) => {
+      const add = e.target.closest("[data-add]"), rm = e.target.closest("[data-rm]"), rs = e.target.closest("[data-reset]");
+      if (add) {
+        const g = GROUPS.find(x => x.key === add.dataset.add);
+        const inp = $("sheetBody").querySelector(`input[data-new="${g.key}"]`);
+        const label = inp.value.trim(); if (!label) { inp.focus(); return; }
+        if (g.options.some(o => o.label.toLowerCase() === label.toLowerCase())) { toast("Такая программа уже есть", true); return; }
+        g.options.push({ id: "c" + Date.now().toString(36), label });
+      } else if (rm) {
+        const g = GROUPS.find(x => x.key === rm.dataset.rm);
+        const o = g.options.find(x => x.id === rm.dataset.id); if (!o) return;
+        const used = records.filter(r => { const s = (r.sel || {})[g.key]; return g.qty ? !!(s && s[o.id]) : Array.isArray(s) && s.includes(o.id); }).length;
+        if (used && !(await confirmBox(`«${o.label}» отмечено у ${used} записей. Убрать из списка? Эти отметки перестанут отображаться.`, "Убрать", true))) return;
+        g.options = g.options.filter(x => x.id !== o.id);
+      } else if (rs) {
+        if (!(await confirmBox("Вернуть стандартные списки программ? Добавленные вами пункты пропадут.", "Вернуть", true))) return;
+        applyGroups(null);
+      } else return;
+      persist(); rebuildKeepingForm();
+      $("sheetBody").innerHTML = dictHtml();
+      if (add) { const inp = $("sheetBody").querySelector(`input[data-new="${add.dataset.add}"]`); inp && inp.focus(); }
+    });
+  }
+  $("sheetBody").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.matches("input[data-new]")) {
+      e.preventDefault(); const b = $("sheetBody").querySelector(`[data-add="${e.target.dataset.new}"]`); b && b.click();
+    }
+  });
+
+  // ===== экспорт / файлы =====
+  const today = () => new Date().toISOString().slice(0, 10);
+  function rows() {
+    const head = ["Кабинет", "Наименование", "Инв. №", ...GROUPS.map(g => g.title), "Примечание"];
+    const body = filtered().map(r => [r.room, r.name, r.inv, ...GROUPS.map(g => groupText(r, g)), r.note || ""]);
+    return [head, ...body];
+  }
+  const csvText = () => "﻿" + rows().map(r => r.map(v => { const s = String(v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(";")).join("\r\n");
+  const tsvText = () => rows().map(r => r.map(v => String(v).replace(/[\t\n]/g, " ")).join("\t")).join("\n");
+
+  function browserDownload(name, mime, text) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: mime + ";charset=utf-8" }));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  }
+  function saveFile(name, mime, text) { if (HAS) window.Android.saveFile(name, mime, text); else browserDownload(name, mime, text); }
+  function shareFile(name, mime, text) { if (HAS) window.Android.shareFile(name, mime, text); else browserDownload(name, mime, text); }
+  async function copyText(t) {
+    try { if (HAS) window.Android.copy(t); else await navigator.clipboard.writeText(t); toast("Скопировано — вставьте в Excel"); }
+    catch (e) { toast("Не удалось скопировать", true); }
+  }
+  function openFile() {
+    if (HAS) { window.Android.openFile(); return; }
+    const i = document.createElement("input"); i.type = "file"; i.accept = ".json,application/json";
+    i.onchange = () => { const f = i.files[0]; if (!f) return; f.text().then(t => window.onAndroidFile(t)); };
+    i.click();
+  }
+  // вызываются из Android
+  window.onAndroidSaved = (ok) => toast(ok ? "Файл сохранён" : "Сохранение отменено", !ok);
+  window.onAndroidFile = async (text) => {
+    let d = null;
+    try { d = JSON.parse(text); } catch (e) {}
+    if (!d || d.app !== "inventory" || !Array.isArray(d.records)) { toast("Это не файл резервной копии", true); return; }
+    const ok = await confirmBox(`Заменить текущие данные (${records.length} зап.) данными из копии (${d.records.length} зап.)?`, "Заменить", true);
+    if (!ok) return;
+    records = d.records; applyGroups(d.groups);
+    clearForm(false); setEditing(null); buildGroups(); persist();
+    toast("Данные восстановлены");
+  };
+  window.onAndroidBack = () => {
+    if ($("modal").classList.contains("show")) { closeModal(false); return true; }
+    if ($("sheet").classList.contains("show")) { closeSheet(); return true; }
+    if (editingId) { clearForm(false); setEditing(null); setMsg(""); return true; }
+    return false;
+  };
+
+  // ===== печать А4 =====
+  function doPrint(blank) {
+    const html = buildPrint(blank);
+    const title = blank ? "Бланк инвентаризации" : "Ведомость " + today();
+    if (HAS) { window.Android.print(html, title); return; }
+    const w = window.open("", "_blank"); if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 300); }
+  }
+  function buildPrint(blank) {
+    const list = blank ? [] : filtered();
+    const rooms = [...new Set(list.map(r => r.room))];
+    const roomLabel = blank ? "" : (rooms.length === 1 ? esc(rooms[0]) : "");
+    const nPlain = GROUPS.reduce((s, g) => s + (g.qty ? 0 : g.options.length), 0);
+    const nQty = GROUPS.reduce((s, g) => s + (g.qty ? g.options.length : 0), 0);
+    const nOpts = nPlain + nQty;
+    const unit = Math.min(7.6, 150 / Math.max(1, nPlain + 1.4 * nQty));
+    const groupsP = GROUPS.filter(g => g.options.length);
+
+    const head1 = groupsP.map(g => `<th class="c grp" colspan="${g.options.length}">${g.printTitle || esc(g.title)}</th>`).join("");
+    const head2 = groupsP.map(g => g.options.map(o => `<th class="v"><div>${esc(o.short || o.label)}</div></th>`).join("")).join("");
+    const optCells = (r) => groupsP.map(g => g.options.map(o => {
+      if (!r) return g.qty ? `<td class="o"></td>` : `<td class="o"><span class="sq"></span></td>`;
+      const s = (r.sel || {})[g.key];
+      if (g.qty) { const n = s && s[o.id]; return `<td class="o">${n ? n : ""}</td>`; }
+      return `<td class="o">${Array.isArray(s) && s.includes(o.id) ? "&#10004;" : ""}</td>`;
+    }).join("")).join("");
+    const noteFor = (r) => {
+      const extra = GROUPS.map(g => (r.other || {})[g.key] ? `${shortTitle(g)}: ${(r.other || {})[g.key]}` : "").filter(Boolean);
+      return esc([...extra, r.note || ""].filter(Boolean).join("; "));
+    };
+    let body = list.map((r, i) => `<tr>
+      <td class="c">${i + 1}</td><td class="c">${esc(r.room)}</td><td>${esc(r.name)}</td><td class="c">${esc(r.inv)}</td>
+      ${optCells(r)}<td class="nt">${noteFor(r)}</td></tr>`).join("");
+    if (blank) for (let i = 1; i <= 12; i++) body += `<tr class="blank"><td class="c">${i}</td><td></td><td></td><td></td>${optCells(null)}<td></td></tr>`;
+
+    const avG = GROUPS.find(g => g.key === "av");
+    const avTot = avG.options.map(o => {
+      const n = list.reduce((s, r) => s + (((r.sel || {}).av || {})[o.id] || 0), 0);
+      return n ? `${esc(o.label)} — <b>${n}</b>` : "";
+    }).filter(Boolean).join(", ");
+    const dateStr = new Date().toLocaleDateString("ru-RU");
+
+    return `<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8"><title>Инвентаризационная ведомость</title>
+<style>
+  @page { size: A4 landscape; margin: 10mm 10mm 12mm; }
+  * { box-sizing: border-box; }
+  body { font: 10.5pt "Times New Roman", Times, "Liberation Serif", "Noto Serif", serif; color: #000; margin: 0; background: #fff; }
+  .sheet { max-width: 277mm; margin: 0 auto; }
+  h1 { font-size: 13.5pt; text-align: center; margin: 0 0 3.5mm; text-transform: uppercase; letter-spacing: .4pt; }
+  .meta { display: flex; justify-content: space-between; gap: 8mm; margin-bottom: 3.5mm; }
+  .meta div { flex: 1; white-space: nowrap; }
+  .line { display: inline-block; border-bottom: 1px solid #000; padding: 0 2mm; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th, td { border: 1px solid #000; padding: 1.2mm 1.5mm; vertical-align: middle; }
+  th { font-size: 8.5pt; font-weight: bold; background: #eee; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  th.grp { font-size: 9pt; }
+  th.v { height: 26mm; padding: 1mm 0; vertical-align: bottom; }
+  th.v div { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; font-weight: normal; font-size: 8.5pt; max-height: 24mm; overflow: hidden; }
+  td { font-size: 9.5pt; word-wrap: break-word; }
+  td.c, th.c { text-align: center; }
+  td.o { text-align: center; padding: 1mm 0; font-size: 10pt; }
+  td.nt { font-size: 8.5pt; }
+  tr { page-break-inside: avoid; }
+  tr.blank td { height: 9mm; }
+  .sq { display: inline-block; width: 3.6mm; height: 3.6mm; border: 1px solid #000; }
+  thead { display: table-header-group; }
+  .total { margin-top: 2.5mm; font-size: 10pt; }
+  .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm 16mm; margin-top: 9mm; page-break-inside: avoid; }
+  .sign .s { display: flex; align-items: flex-end; gap: 3mm; }
+  .sign .s span.l { flex: 1; border-bottom: 1px solid #000; height: 6mm; position: relative; }
+  .sign .s span.l small { position: absolute; top: 6.5mm; left: 0; right: 0; text-align: center; font-size: 7.5pt; }
+</style></head>
+<body>
+<div class="sheet">
+  <h1>Инвентаризационная ведомость компьютерной техники</h1>
+  <div class="meta">
+    <div>Организация: <span class="line" style="min-width:70mm">&nbsp;</span></div>
+    <div style="text-align:center">Кабинет №: <span class="line" style="min-width:25mm">${roomLabel || "&nbsp;"}</span></div>
+    <div style="text-align:right">Дата: <span class="line" style="min-width:32mm">${blank ? "&nbsp;" : dateStr}</span></div>
+  </div>
+  <table>
+    <colgroup>
+      <col style="width:8mm"><col style="width:12mm"><col style="width:48mm"><col style="width:24mm">
+      ${groupsP.map(g => g.options.map(() => `<col style="width:${(g.qty ? unit * 1.4 : unit).toFixed(1)}mm">`).join("")).join("")}
+      <col>
+    </colgroup>
+    <thead>
+      <tr>
+        <th class="c" rowspan="2">№</th><th class="c" rowspan="2">Каб.</th>
+        <th class="c" rowspan="2">Наименование техники</th><th class="c" rowspan="2">Инвентарный номер</th>
+        ${head1}
+        <th class="c" rowspan="2">Примечание<br><span style="font-weight:normal">(другое ПО)</span></th>
+      </tr>
+      <tr>${head2}</tr>
+    </thead>
+    <tbody>${body || `<tr><td colspan="${5 + nOpts}" class="c">Нет записей</td></tr>`}</tbody>
+  </table>
+  ${blank ? `<div class="total" style="font-size:8.5pt">В колонках «Антивирус» указывается количество лицензий.</div>` :
+    `<div class="total">Всего единиц техники: <b>${list.length}</b>${avTot ? `; антивирус: ${avTot}` : ""}.</div>`}
+  <div class="sign">
+    <div class="s">Ответственный: <span class="l"><small>должность</small></span><span class="l"><small>подпись</small></span><span class="l"><small>ФИО</small></span></div>
+    <div class="s">Проверил: <span class="l"><small>должность</small></span><span class="l"><small>подпись</small></span><span class="l"><small>ФИО</small></span></div>
+  </div>
+</div>
+</body></html>`;
+  }
+
+  // ===== старт =====
+  load();
+  buildGroups();
+  render();
+})();
+</script>
+</body>
+</html>
